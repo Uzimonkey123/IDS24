@@ -110,16 +110,16 @@ CREATE TABLE "Prava_Disponent" ( -- pomocna tabulka pro N:M
     CONSTRAINT "PK_Prava_Disponent" PRIMARY KEY ("ID_Prava", "ID_Disponent"),
     CONSTRAINT "FK_Prava_Disponent_Prava" FOREIGN KEY ("ID_Prava") REFERENCES "Prava"("ID_Prava"),
     CONSTRAINT "FK_Prava_Disponent_Disponent" FOREIGN KEY ("ID_Disponent") REFERENCES "Disponent"("ID_Klienta")
-)
+); -- zkontrolovat, jestli se potřeba nechat středník i tady nebo ne
 
 
 -- Test inputs:
 INSERT INTO "Zamestnanec" ("Rodne_cislo", "Jmeno", "Prijmeni", "Datum_narozeni", "Telefonni_cislo", "Email", "Adresa")
 VALUES ('123456/7890', 'Zamestnanec1', 'Testovaci1', TO_DATE('1972-07-30', 'yyyy/mm/dd'), '123456789', 'zamestnanec1@fit.vut', 'Brno');
 INSERT INTO "Zamestnanec" ("Rodne_cislo", "Jmeno", "Prijmeni", "Datum_narozeni", "Telefonni_cislo", "Email", "Adresa")
-VALUES ('123456/7891', 'Zamestnanec2', 'Testovaci2', TO_DATE('1945-07-30', 'yyyy/mm/dd'), '123456780', 'zamestnanec2@fit.vut', 'Brno')
+VALUES ('123456/7891', 'Zamestnanec2', 'Testovaci2', TO_DATE('1945-07-30', 'yyyy/mm/dd'), '123456780', 'zamestnanec2@fit.vut', 'Brno');
 INSERT INTO "Zamestnanec" ("Rodne_cislo", "Jmeno", "Prijmeni", "Datum_narozeni", "Telefonni_cislo", "Email", "Adresa")
-VALUES ('123456/7892', 'Zamestnanec3', 'Testovaci3', TO_DATE('2003-05-20', 'yyyy/mm/dd'), '203456780', 'zamestnanec3@fit.vut', 'Brno')
+VALUES ('123456/7892', 'Zamestnanec3', 'Testovaci3', TO_DATE('2003-05-20', 'yyyy/mm/dd'), '203456780', 'zamestnanec3@fit.vut', 'Brno');
 
 INSERT INTO "Vlastnik" ("Rodne_cislo", "Jmeno", "Prijmeni", "Datum_narozeni", "Telefonni_cislo", "Email", "Adresa") 
 VALUES ('123456/7895', 'Vlastnik1', 'Testovaci1', TO_DATE('2001-02-15', 'yyyy/mm/dd'), '123456789', 'asder1@fit.vut', 'Brno');
