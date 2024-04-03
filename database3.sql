@@ -148,6 +148,14 @@ INSERT INTO "Operace" ("Typ", "Castka", "Datum", "Cislo_Uctu", "ID_Zamestnance",
 VALUES ('Vyber', 10000, TO_DATE('1990-07-30', 'yyyy/mm/dd'), 123456783, 1, 2);
 INSERT INTO "Operace" ("Typ", "Castka", "Datum", "Cislo_Uctu", "ID_Klienta")
 VALUES ('Transakce', 15000, TO_DATE('2003-07-30', 'yyyy/mm/dd'), 123456784, 1);
+INSERT INTO "Operace" ("Typ", "Castka", "Datum", "Cislo_Uctu", "ID_Klienta")
+VALUES ('Transakce', 15000, TO_DATE('2003-07-31', 'yyyy/mm/dd'), 123456784, 1);
+INSERT INTO "Operace" ("Typ", "Castka", "Datum", "Cislo_Uctu", "ID_Zamestnance", "ID_Disponenta", "ID_Klienta")
+VALUES ('Vyber', 10000, TO_DATE('1990-07-30', 'yyyy/mm/dd'), 123456783, 1, 3, 2);
+INSERT INTO "Operace" ("Typ", "Castka", "Datum", "Cislo_Uctu", "ID_Zamestnance", "ID_Disponenta", "ID_Klienta")
+VALUES ('Vyber', 10000, TO_DATE('1990-07-30', 'yyyy/mm/dd'), 123456783, 1, 2, 2);
+INSERT INTO "Operace" ("Typ", "Castka", "Datum", "Cislo_Uctu", "ID_Zamestnance", "ID_Disponenta", "ID_Klienta")
+VALUES ('Vyber', 10000, TO_DATE('1990-07-30', 'yyyy/mm/dd'), 123456783, 1, 2, 2);
 
 INSERT INTO "Sluzby" ("Typ_sluzby", "Cislo_Uctu", "ID_Zamestnance")
 VALUES ('Sluzba1', 123456789, 1);
@@ -193,23 +201,39 @@ JOIN "Ucet" U ON O."Cislo_Uctu" = U."Cislo_Uctu"
 JOIN "Vlastnik" V ON U."ID_Klienta" = V."ID_Klienta"
 LEFT JOIN "Zamestnanec" Z ON O."ID_Zamestnance" = Z."ID_Zamestnance";
 
--- GROUP BY a agregacni funkce
+-- Spojeni tri tabulek
+-- Vypise vsechny ucty, kde je nejaky disponent
+SELECT CONCAT(V."Jmeno", V."Prijmeni") AS jmeno_vlastnika, CONCAT(D."Jmeno", D."Prijmeni") AS jmeno_disponenta, U."Cislo_Uctu", U."Typ"
+FROM "Ucet" U
+JOIN "Vlastnik" V ON U."ID_Klienta" = V."ID_Klienta"
+JOIN "Disponent" D ON U."ID_Disponenta" = D."ID_Klienta"
+WHERE "ID_Disponenta" IS NOT NULL;
+
+-- GROUP BY a agregacni funkce COUNT
 -- Ziska celkovy pocet operaci provedenych na kazdem uctu
 SELECT U."Cislo_Uctu", COUNT(*) AS "Pocet_Operaci"
 FROM "Operace" O
 JOIN "Ucet" U ON O."Cislo_Uctu" = U."Cislo_Uctu"
 GROUP BY U."Cislo_Uctu";
 
--- GROUP BY a agregacni funkce
+-- GROUP BY a agregacni funkce AVG
 -- Ziska prumerny zustatek na sporicich a beznych uctech
 SELECT "Typ", AVG("Zustatek") AS "Prumerny_Zustatek"
 FROM "Ucet"
 GROUP BY "Typ";
 
+-- GROUP BY a agregacni funkce SUM
+-- Ziska vysi celkove transakce provedene na danem uctu
+SELECT U."Cislo_Uctu", SUM(O."Castka") AS celkove_transakce
+FROM "Ucet" U
+JOIN "Operace" O ON U."Cislo_Uctu" = O."Cislo_Uctu"
+GROUP BY U."Cislo_Uctu";
+
 -- EXISTS
 -- Ziska ucty, ktere maji alespon jednu operaci s castkou vyssi nez 4500
-SELECT "Cislo_Uctu"
+SELECT U."Cislo_Uctu", O."Castka"
 FROM "Ucet" U
+JOIN "Operace" O ON U."Cislo_Uctu" = O."Cislo_Uctu"
 WHERE EXISTS (
     SELECT 1
     FROM "Operace" O
@@ -217,7 +241,7 @@ WHERE EXISTS (
 );
 
 -- IN SELECT
--- Ziska vsechny disponenty, kteri jsou disponenty na uctech s operaci vyssi nez 5000
+-- Ziska vsechny unikatni disponenty, kteri jsou disponenty na uctech s operaci vyssi nez 5000
 SELECT "Jmeno", "Prijmeni"
 FROM "Disponent"
 WHERE "ID_Klienta" IN (
