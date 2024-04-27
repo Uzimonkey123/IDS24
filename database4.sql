@@ -111,7 +111,7 @@ CREATE TABLE "Prava_Disponent" ( -- pomocna tabulka pro N:M
     CONSTRAINT "PK_Prava_Disponent" PRIMARY KEY ("ID_Prava", "ID_Disponent"),
     CONSTRAINT "FK_Prava_Disponent_Prava" FOREIGN KEY ("ID_Prava") REFERENCES "Prava"("ID_Prava"),
     CONSTRAINT "FK_Prava_Disponent_Disponent" FOREIGN KEY ("ID_Disponent") REFERENCES "Disponent"("ID_Klienta")
-); -- zkontrolovat, jestli se potřeba nechat středník i tady nebo ne
+);
 
 CREATE TABLE "Log" (
     "Cislo_Uctu" VARCHAR2(34),
@@ -222,6 +222,7 @@ INSERT INTO "Prava_Disponent" ("ID_Prava", "ID_Disponent")
 VALUES (1, 2);
 
 -- Proccedura 1
+-- Procedura pro pridani uctu do tabulky ucet, pokud se nepodari, vyhodi vyjimku
 CREATE OR REPLACE PROCEDURE pridat_ucet(p_cislo_uctu IN "Ucet"."Cislo_Uctu"%TYPE,
                                         p_typ IN "Ucet"."Typ"%TYPE,
                                         p_zustatek IN "Ucet"."Zustatek"%TYPE,
@@ -234,11 +235,11 @@ BEGIN
     VALUES (p_cislo_uctu, p_typ, p_zustatek, p_datum_zalozeni, p_aktivni, p_id_klienta);
 EXCEPTION
     WHEN OTHERS THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Error adding account: ' || SQLERRM);
+        RAISE_APPLICATION_ERROR(-20001, 'Chyba pridani uctu k databazi: ' || SQLERRM);
 END;
 
 -- Procedura 2
--- Prida vsechny ucty, ktere maji negativni zustatek do tabulky Log
+-- Prida vsechny ucty, ktere maji negativni zustatek do TABULKY Log
 CREATE OR REPLACE PROCEDURE seznam_zadluzenych_uctu
 IS
     CURSOR zadluzene_ucty IS
@@ -251,14 +252,14 @@ BEGIN
     LOOP
         FETCH zadluzene_ucty INTO n_ucet;
         EXIT WHEN zadluzene_ucty%NOTFOUND;
-        -- Inserting into a logging or output table instead of using DBMS_OUTPUT
+        -- Pridani uctu do tabulky Log misto vypisu
         INSERT INTO "Log" ("Cislo_Uctu", "Zustatek", "ID_Klienta")
         VALUES (n_ucet."Cislo_Uctu", n_ucet."Zustatek", n_ucet."ID_Klienta");
     END LOOP;
     CLOSE zadluzene_ucty;
 EXCEPTION
     WHEN OTHERS THEN
-        RAISE_APPLICATION_ERROR(-20003, 'Error fetching overdrawn accounts: ' || SQLERRM);
+        RAISE_APPLICATION_ERROR(-20003, 'Chyba pri ziskani zadluzenych uctu: ' || SQLERRM);
 END;
 
 -- Predvedeni procedur
@@ -287,6 +288,7 @@ GROUP BY O."Cislo_Uctu", U."Typ";
 -- Zobrazeni pred indexem
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
+-- Vytvoreni indexu pro optimalizaci explain plan (celkova_transakce)
 CREATE INDEX idx_cislo_uctu ON "Operace" ("Cislo_Uctu");
 
 -- Po vytvoreni indexu se jiz nepristupuje k cele tabulce (TABLE ACCESS FULL), ale jen se hleda v rozsahu indexu (INDEX RANGE SCAN)
@@ -301,6 +303,7 @@ GROUP BY O."Cislo_Uctu", U."Typ";
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
 -- Komplexni SELECT s vyuzitim CASE a WITH
+-- Ziskava aktivitu na danem uctu podle vyse transakci
 WITH aktivita_uctu AS (
     SELECT "Cislo_Uctu", SUM("Castka") AS celkove_transakce
     FROM "Operace"
@@ -314,12 +317,21 @@ SELECT "Cislo_Uctu",
        END AS Aktivita
 FROM aktivita_uctu;
 
+-- -------------------------------------------------
+-- Materializovany pohled patrici druhemu clenu tymu
+
 CREATE MATERIALIZED VIEW "Prehled_uctu"
 AS
 SELECT v."Jmeno", v."Prijmeni", v."Email", SUM(u."Zustatek") AS total_balance
 FROM "Vlastnik" v
 JOIN "Ucet" u ON v."ID_Klienta" = u."ID_Klienta"
 GROUP BY v."Jmeno", v."Prijmeni", v."Email";
+
+SELECT * FROM "Prehled_uctu";
+
+-- --------------------------------------------------
+
+-- Prava pro uzivatele
 
 GRANT ALL ON "Log" TO xbarta51;
 GRANT ALL ON "Prava_Disponent" TO xbarta51;
